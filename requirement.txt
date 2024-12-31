@@ -1,0 +1,5 @@
+numpy
+whisper
+sounddevice
+rich
+langchain
