@@ -1,34 +1,171 @@
-# AI Voice Assistant
+# AI Call Agent for Autonomous Campus Shuttle 🚐🤖
 
-This project is a simple AI voice assistant that captures audio input, transcribes it to text, generates a response using an AI language model, and converts the response back to speech.
+An intelligent voice-controlled assistant for autonomous campus shuttle systems, providing natural language interaction for passenger convenience and safety.
 
-## Features
+## 🏗️ System Architecture
 
-- **Speech Recognition**: Captures audio from the user's microphone and transcribes it using the Whisper model.
-- **Language Model Interaction**: Generates responses to user input using the Llama-2 language model integrated via LangChain.
-- **Text-to-Speech**: Converts the AI-generated response back to speech and plays it using the TextToSpeechService.
-- **Rich Console Output**: Displays the conversation in the console with styled text for better readability.
-
-## Requirements
-
-To run this project, you need the following Python packages:
-
-- `time`
-- `threading`
-- `numpy`
-- `whisper`
-- `sounddevice`
-- `queue`
-- `rich`
-- `langchain`
-- `langchain_community`
-- `tts`
-
-You can install these dependencies using `pip`:
-
-```bash
-pip install numpy whisper rich langchain langchain_community tts
 ```
++---------------------------+            +------------------------------+
+|   🎤 Voice Input (Mic)    |            |  💻 Touchscreen / UI Input    |
++---------------------------+            +------------------------------+
+             |                                         |
+             v                                         v
++---------------------------+      +------------------------------+
+|  🧠 Speech-to-Text Engine  |<----->|         UI Command Parser    |
+|   (e.g. Whisper, Vosk)    |      |  (Buttons like "Stop", etc.)  |
++---------------------------+      +------------------------------+
+             |                                         |
+             +---------------+-------------------------+
+                             |
+                             v
+             +-----------------------------------+
+             |  🧠 NLP + Intent Recognition Engine |
+             |   (LLM/Ollama/GPT-4-mini/Rules)    |
+             +-----------------------------------+
+                             |
+              +--------------+--------------+
+              |                             |
+              v                             v
++---------------------------+     +-----------------------------+
+|  🔌 Vehicle Control API     |     | 🧭 Navigation / ETA Engine   |
+|  (ROS / REST / CAN Bridge) |     | (Campus Map Graph / GPS)    |
++---------------------------+     +-----------------------------+
+              |                             |
+              +-------------+---------------+
+                            |
+                            v
+              +------------------------------+
+              |  🔊 Response Generator         |
+              |  (TTS engine + Visual UI)     |
+              +------------------------------+
+                            |
+          +----------------+------------------+
+          |                                   |
+          v                                   v
++-------------------------+      +---------------------------+
+| 🔊 Speaker Output (TTS)  |      |  📺 Display Output (UI)     |
++-------------------------+      +---------------------------+
+```
+
+## 🚀 Features
+
+### 🎤 Voice Interface
+- **Offline Speech Recognition**: Uses Whisper for real-time voice-to-text conversion
+- **Natural Language Processing**: Understands passenger commands and intents
+- **Voice Feedback**: Provides audio responses using advanced TTS
+
+### 🚗 Vehicle Control
+- **Speed Management**: Control vehicle speed with voice commands
+- **Emergency Stop**: Immediate safety halt functionality
+- **Destination Setting**: Voice-controlled navigation to campus locations
+
+### 🗺️ Navigation System
+- **Campus Mapping**: Pre-defined routes for campus shuttle service
+- **ETA Calculations**: Real-time arrival time estimates
+- **Route Optimization**: Efficient path planning between locations
+
+### 🎯 Intent Recognition
+- **Command Understanding**: Recognizes passenger intents from natural speech
+- **Safety Prioritization**: Emergency commands get highest priority
+- **Contextual Responses**: Intelligent responses based on vehicle state
+
+## 📁 Project Structure
+
+```
+AI-Call-Agent/
+├── src/                           # Main source code
+│   ├── __init__.py
+│   ├── main.py                    # Main application entry point
+│   ├── config.py                  # Configuration settings
+│   ├── speech_to_text.py          # Speech recognition module
+│   ├── intent_recognition.py      # NLP and intent processing
+│   ├── vehicle_control.py         # Vehicle control interface
+│   ├── navigation.py              # Navigation and routing
+│   ├── text_to_speech.py          # Speech synthesis
+│   └── ui_parser.py               # UI command processing
+├── app.py                         # Legacy entry point
+├── assistant.py                   # Legacy assistant module
+├── tts.py                         # Legacy TTS module
+├── pyproject.toml                 # Poetry configuration
+├── requirements.txt               # Pip requirements
+├── Makefile                       # Build automation
+└── README.md                      # This file
+```
+
+## 🛠️ Installation
+
+### Prerequisites
+- Python 3.11+
+- CUDA-compatible GPU (optional, for faster TTS)
+- Microphone and speakers
+- Audio libraries (PortAudio/ALSA)
+
+### Using Poetry (Recommended)
+```bash
+# Clone the repository
+git clone https://github.com/ankitrajsh/AI-Call-Agent-.git
+cd AI-Call-Agent-
+
+# Install dependencies with Poetry
+poetry install
+
+# Activate the virtual environment
+poetry shell
+```
+
+### Using pip
+```bash
+# Clone the repository
+git clone https://github.com/ankitrajsh/AI-Call-Agent-.git
+cd AI-Call-Agent-
+
+# Create virtual environment
+python -m venv ai-call-agent
+source ai-call-agent/bin/activate  # On Windows: ai-call-agent\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+## 🚀 Usage
+
+### Interactive Mode
+```bash
+# Start the AI Call Agent
+python src/main.py
+
+# Or use legacy entry points
+python app.py
+python assistant.py
+```
+
+### Available Commands
+
+#### Voice Commands
+- **"Take me to Main Gate"** - Set destination
+- **"Stop the vehicle"** - Normal stop
+- **"Emergency stop"** - Immediate halt
+- **"Slow down"** - Reduce speed
+- **"Speed up"** - Increase speed
+- **"What's our current speed?"** - Get speed info
+- **"Where are we?"** - Get location
+- **"How long until we arrive?"** - Get ETA
+
+#### UI Commands
+```bash
+# In interactive mode, use these commands:
+v                    # Voice input
+status              # Show vehicle status
+ui emergency_stop   # Emergency stop via UI
+ui stop             # Normal stop
+ui set_destination Main Gate  # Set destination
+h                   # Help
+q                   # Quit
+```
+
+---
+
+**Made with ❤️ for safer and smarter autonomous transportation**
 
 ## Usage
 

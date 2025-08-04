@@ -11,18 +11,29 @@ from rich.panel import Panel
 
 # Import our modules
 from src.speech_to_text import SpeechToTextEngine
-from src.intent_recognition import IntentRecognitionEngine, Intent
-from src.vehicle_control import VehicleControlAPI
-from src.navigation import NavigationEngine
-from src.text_to_speech import TextToSpeechService
-from src.ui_parser import UICommandParser, UICommand
+from .intent_recognition import IntentRecognitionEngine, Intent
+from .llama_intent_recognition import LlamaIntentRecognitionEngine, create_intent_engine
+from .vehicle_control import VehicleControlAPI
+from .navigation import NavigationEngine
+from .text_to_speech import TextToSpeechEngine
+from .ui_parser import UIParser
+from .config import Config
 
 
 class AICallAgent:
     """Main AI Call Agent system integrating all components"""
     
-    def __init__(self):
+    def __init__(self, llama_model_path=None, use_llama=True):
+        """
+        Initialize the AI Call Agent
+        
+        Args:
+            llama_model_path: Path to fine-tuned Llama model
+            use_llama: Whether to use Llama model for enhanced intent recognition
+        """
         self.console = Console()
+        self.llama_model_path = llama_model_path
+        self.use_llama = use_llama
         self._initialize_components()
         self.running = False
         
@@ -31,13 +42,29 @@ class AICallAgent:
         try:
             self.console.print("🚀 Initializing AI Call Agent System...")
             
-            # Initialize components
+            # Initialize core components
             self.stt_engine = SpeechToTextEngine()
-            self.intent_engine = IntentRecognitionEngine()
+            
+            # Initialize enhanced intent recognition
+            self.intent_engine = create_intent_engine(self.llama_model_path, self.use_llama)
+            
             self.vehicle_control = VehicleControlAPI()
             self.navigation = NavigationEngine()
-            self.tts_service = TextToSpeechService()
-            self.ui_parser = UICommandParser()
+            
+            # Initialize optional components
+            try:
+                from .text_to_speech import TextToSpeechEngine
+                self.tts_service = TextToSpeechEngine()
+            except ImportError:
+                self.console.print("[yellow]TTS service not available - using basic output")
+                self.tts_service = None
+                
+            try:
+                from .ui_parser import UIParser
+                self.ui_parser = UIParser()
+            except ImportError:
+                self.console.print("[yellow]UI parser not available - using basic UI")
+                self.ui_parser = None
             
             self.console.print("✅ All components initialized successfully!")
             
@@ -120,7 +147,67 @@ class AICallAgent:
             self.console.print(f"[red]UI command processing error: {e}")
             return False
     
-    def _ui_command_to_intent(self, ui_command: UICommand) -> Intent:
+    def _generate_response(self, intent: Intent, entities: Optional[Dict[str, Any]], 
+                          context: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Generate natural language response using enhanced intent recognition
+        
+        Args:
+            intent: Recognized intent
+            entities: Extracted entities
+            context: Additional context (vehicle status, etc.)
+            
+        Returns:
+            Natural language response
+        """
+        # Get current vehicle context
+        current_context = {
+            "speed": f"{self.vehicle_control.get_speed():.1f}",
+            "location": self.vehicle_control.get_location(),
+            "status": self.vehicle_control.get_vehicle_status()
+        }
+        
+        # Merge with provided context
+        if context:
+            current_context.update(context)
+        
+        # Use Llama model for response generation if available
+        if hasattr(self.intent_engine, 'generate_response'):
+            try:
+                return self.intent_engine.generate_response(intent, entities, current_context)
+            except Exception as e:
+                self.console.print(f"[yellow]Fallback to basic response: {e}")
+        
+        # Fallback to basic responses
+        return self._generate_basic_response(intent, entities, current_context)
+    
+    def _generate_basic_response(self, intent: Intent, entities: Optional[Dict[str, Any]], 
+                               context: Dict[str, Any]) -> str:
+        """Generate basic rule-based responses"""
+        if intent == Intent.EMERGENCY_STOP:
+            return "Emergency stop activated. Vehicle stopped immediately for safety."
+        elif intent == Intent.STOP_VEHICLE:
+            return "Bringing the vehicle to a controlled stop."
+        elif intent == Intent.GET_SPEED:
+            return f"Current speed is {context.get('speed', 'unknown')} km/h."
+        elif intent == Intent.GET_LOCATION:
+            return f"We are currently at {context.get('location', 'unknown location')}."
+        elif intent == Intent.SET_DESTINATION:
+            dest = entities.get('destination', 'unknown') if entities else 'unknown'
+            return f"Setting destination to {dest}."
+        elif intent == Intent.GET_ETA:
+            eta = context.get('eta', 'calculating')
+            return f"Estimated arrival time is {eta}."
+        elif intent == Intent.SLOW_DOWN:
+            return f"Reducing speed. Current speed: {context.get('speed', 'unknown')} km/h."
+        elif intent == Intent.SPEED_UP:
+            return f"Increasing speed. Current speed: {context.get('speed', 'unknown')} km/h."
+        elif intent == Intent.GREETING:
+            return "Hello! I'm your autonomous vehicle assistant. How can I help you?"
+        else:
+            return "I didn't understand that command. Please try again."
+
+    def _ui_command_to_intent(self, ui_command) -> Intent:
         """Convert UI command to intent"""
         mapping = {
             UICommand.EMERGENCY_STOP: Intent.EMERGENCY_STOP,
@@ -275,7 +362,7 @@ class AICallAgent:
     
     def _generate_response(self, response: Dict[str, Any]):
         """
-        Generate and output response
+        Generate and output response using enhanced LLM capabilities
         
         Args:
             response: Response dictionary from intent processing
@@ -283,22 +370,66 @@ class AICallAgent:
         try:
             response_type = response["type"]
             data = response["data"]
+            intent_str = response.get("intent", "unknown")
             
-            # Format response text
-            response_text = self.tts_service.format_vehicle_response(response_type, data)
+            # Convert intent string back to Intent enum
+            try:
+                intent = Intent(intent_str)
+            except ValueError:
+                intent = Intent.UNKNOWN
+            
+            # Generate enhanced response text using Llama if available
+            if hasattr(self.intent_engine, 'generate_response'):
+                try:
+                    # Prepare context from response data
+                    context = {
+                        "response_type": response_type,
+                        **data
+                    }
+                    response_text = self.intent_engine.generate_response(intent, None, context)
+                except Exception as e:
+                    self.console.print(f"[yellow]Using fallback response: {e}")
+                    response_text = self._format_basic_response(response_type, data)
+            else:
+                response_text = self._format_basic_response(response_type, data)
             
             # Display response
             self.console.print(f"🤖 [green]Assistant:[/green] {response_text}")
             
-            # Synthesize and play audio response
-            with self.console.status("🔊 Generating speech...", spinner="earth"):
-                success = self.tts_service.synthesize_and_play(response_text)
-            
-            if not success:
-                self.console.print("[red]Failed to generate speech output")
-                
+            # Synthesize and play audio response if TTS is available
+            if self.tts_service:
+                try:
+                    with self.console.status("🔊 Generating speech...", spinner="earth"):
+                        success = self.tts_service.synthesize_and_play(response_text)
+                    
+                    if not success:
+                        self.console.print("[red]Failed to generate speech output")
+                except Exception as e:
+                    self.console.print(f"[yellow]TTS error: {e}")
+                    
         except Exception as e:
             self.console.print(f"[red]Response generation error: {e}")
+    
+    def _format_basic_response(self, response_type: str, data: Dict[str, Any]) -> str:
+        """Format basic response for fallback"""
+        if response_type == "emergency_stop":
+            return "Emergency stop activated immediately for safety."
+        elif response_type == "stop":
+            return "Vehicle stopped successfully."
+        elif response_type == "speed_change":
+            return f"Speed adjusted. Current speed: {data.get('speed', 'unknown')} km/h."
+        elif response_type == "destination_set":
+            return f"Destination set to {data.get('destination', 'unknown')}."
+        elif response_type == "speed":
+            return f"Current speed is {data.get('speed', 'unknown')} km/h."
+        elif response_type == "location":
+            return f"Current location: {data.get('location', 'unknown')}."
+        elif response_type == "eta":
+            return f"Estimated arrival: {data.get('eta', 'calculating')}."
+        elif response_type == "error":
+            return f"Error: {data.get('message', 'Unknown error occurred')}."
+        else:
+            return "Command processed successfully."
     
     def display_status(self):
         """Display current system status"""

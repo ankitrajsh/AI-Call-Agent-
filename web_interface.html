@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Call Agent - Autonomous Vehicle Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 90%;
+            max-width: 1200px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chat-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+        }
+
+        .vehicle-status {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: white;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .user-message {
+            background: #007bff;
+            color: white;
+            text-align: right;
+            margin-left: 20%;
+        }
+
+        .ai-message {
+            background: #e9ecef;
+            color: #333;
+            margin-right: 20%;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #007bff;
+        }
+
+        .btn {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-header {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            color: #007bff;
+            font-weight: 700;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .voice-controls {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-top: 2rem;
+        }
+
+        .voice-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0 1rem;
+        }
+
+        .voice-btn.recording {
+            background: #dc3545;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .voice-btn.idle {
+            background: #28a745;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .connected {
+            background: #28a745;
+        }
+
+        .disconnected {
+            background: #dc3545;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .destination-selector {
+            margin-bottom: 1rem;
+        }
+
+        .destination-selector select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .system-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .error-message {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            color: #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">
+        🔴 Disconnected
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚗 AI Call Agent</h1>
+            <p>Your Intelligent Autonomous Vehicle Assistant</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Chat Section -->
+            <div class="chat-section">
+                <h3>💬 Chat Interface</h3>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai-message">
+                        <strong>AI Assistant:</strong> Hello! I'm your autonomous vehicle assistant. How can I help you today?
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" class="chat-input" id="chatInput" 
+                           placeholder="Type your message... (e.g., 'Stop the vehicle', 'Go to Library')"
+                           onkeypress="handleKeyPress(event)">
+                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                </div>
+                
+                <div class="loading" id="chatLoading">Processing your request...</div>
+            </div>
+
+            <!-- Vehicle Status -->
+            <div class="vehicle-status">
+                <h3>🚙 Vehicle Status</h3>
+                
+                <div class="status-card">
+                    <div class="status-header">Current Speed</div>
+                    <div class="status-value" id="currentSpeed">0.0 km/h</div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="status-header">Location</div>
+                    <div class="status-value" id="currentLocation">Main Gate</div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="status-header">Destination</div>
+                    <div class="status-value" id="currentDestination">Not set</div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="status-header">Status</div>
+                    <div class="status-value" id="vehicleStatus">Stopped</div>
+                </div>
+
+                <div class="destination-selector">
+                    <label for="destinationSelect">Quick Destination:</label>
+                    <select id="destinationSelect">
+                        <option value="">Select destination...</option>
+                        <option value="Library">Library</option>
+                        <option value="Student Center">Student Center</option>
+                        <option value="Engineering Building">Engineering Building</option>
+                        <option value="Parking Lot A">Parking Lot A</option>
+                        <option value="Main Gate">Main Gate</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="btn btn-danger" onclick="emergencyStop()">
+                🛑 Emergency Stop
+            </button>
+            <button class="btn btn-success" onclick="setDestination()">
+                📍 Set Destination
+            </button>
+            <button class="btn btn-primary" onclick="getStatus()">
+                📊 Refresh Status
+            </button>
+            <button class="btn btn-primary" onclick="startSession()">
+                🔄 New Session
+            </button>
+        </div>
+
+        <!-- Voice Controls -->
+        <div class="voice-controls">
+            <h4>🎤 Voice Commands</h4>
+            <p>Click and hold to record your voice command</p>
+            <button class="voice-btn idle" id="voiceBtn" 
+                    onmousedown="startRecording()" 
+                    onmouseup="stopRecording()"
+                    ontouchstart="startRecording()" 
+                    ontouchend="stopRecording()">
+                🎤
+            </button>
+            <div id="voiceStatus"></div>
+        </div>
+
+        <!-- System Information -->
+        <div class="system-info">
+            <h4>📋 System Information</h4>
+            <p><strong>Session ID:</strong> <span id="sessionId">Not connected</span></p>
+            <p><strong>API Endpoint:</strong> <span id="apiEndpoint">http://localhost:8000/api/v1</span></p>
+            <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let sessionId = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            try {
+                await createSession();
+                updateConnectionStatus(true);
+                await refreshStatus();
+                
+                // Auto-refresh status every 10 seconds
+                setInterval(refreshStatus, 10000);
+                
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                updateConnectionStatus(false);
+                showError('Failed to connect to AI Call Agent service');
+            }
+        }
+
+        async function createSession() {
+            try {
+                const response = await fetch(`${API_BASE}/session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    sessionId = data.session_id;
+                    document.getElementById('sessionId').textContent = sessionId.substring(0, 8) + '...';
+                    showSuccess('Connected to AI Call Agent');
+                } else {
+                    throw new Error(data.error || 'Failed to create session');
+                }
+            } catch (error) {
+                console.error('Session creation failed:', error);
+                throw error;
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage(message, true);
+            input.value = '';
+            
+            // Show loading
+            document.getElementById('chatLoading').style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add AI response to chat
+                    addMessage(data.response, false);
+                    
+                    // Update vehicle status if provided
+                    if (data.vehicle_status) {
+                        updateVehicleStatus(data.vehicle_status);
+                    }
+                    
+                    // Show intent information
+                    if (data.intent) {
+                        addMessage(`🎯 Intent recognized: ${data.intent}`, false, 'system');
+                    }
+                } else {
+                    addMessage(`❌ Error: ${data.error}`, false, 'error');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                addMessage('❌ Failed to send message. Please try again.', false, 'error');
+            } finally {
+                document.getElementById('chatLoading').style.display = 'none';
+            }
+        }
+
+        function addMessage(text, isUser = false, type = 'normal') {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            let className = 'message ';
+            let prefix = '';
+            
+            if (type === 'system') {
+                className += 'ai-message';
+                prefix = '🤖 System: ';
+            } else if (type === 'error') {
+                className += 'ai-message';
+                prefix = '❌ Error: ';
+            } else if (isUser) {
+                className += 'user-message';
+                prefix = 'You: ';
+            } else {
+                className += 'ai-message';
+                prefix = '🤖 AI Assistant: ';
+            }
+            
+            messageDiv.className = className;
+            messageDiv.innerHTML = `<strong>${prefix}</strong>${text}`;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function emergencyStop() {
+            try {
+                const response = await fetch(`${API_BASE}/vehicle/emergency_stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage('🛑 Emergency stop activated!', false);
+                    showSuccess('Emergency stop successful');
+                    await refreshStatus();
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                console.error('Emergency stop failed:', error);
+                showError('Emergency stop failed');
+            }
+        }
+
+        async function setDestination() {
+            const select = document.getElementById('destinationSelect');
+            const destination = select.value;
+            
+            if (!destination) {
+                showError('Please select a destination');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/vehicle/destination`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        destination: destination,
+                        session_id: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage(`📍 Destination set to ${destination}`, false);
+                    if (data.eta) {
+                        addMessage(`⏱️ Estimated arrival: ${data.eta}`, false);
+                    }
+                    showSuccess(`Destination set to ${destination}`);
+                    await refreshStatus();
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                console.error('Set destination failed:', error);
+                showError('Failed to set destination');
+            }
+        }
+
+        async function getStatus() {
+            await refreshStatus();
+            addMessage('📊 Status refreshed', false);
+        }
+
+        async function startSession() {
+            try {
+                await createSession();
+                addMessage('🔄 New session started', false);
+                showSuccess('New session created');
+            } catch (error) {
+                showError('Failed to create new session');
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/vehicle/status?session_id=${sessionId}`);
+                const data = await response.json();
+                
+                if (data.success && data.vehicle) {
+                    updateVehicleStatus(data.vehicle);
+                    updateConnectionStatus(true);
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                } else {
+                    updateConnectionStatus(false);
+                }
+            } catch (error) {
+                console.error('Status refresh failed:', error);
+                updateConnectionStatus(false);
+            }
+        }
+
+        function updateVehicleStatus(status) {
+            document.getElementById('currentSpeed').textContent = `${status.speed || 0} km/h`;
+            document.getElementById('currentLocation').textContent = status.location || 'Unknown';
+            document.getElementById('currentDestination').textContent = status.destination || 'Not set';
+            document.getElementById('vehicleStatus').textContent = status.status || 'Unknown';
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.textContent = '🟢 Connected';
+                statusEl.className = 'connection-status connected';
+            } else {
+                statusEl.textContent = '🔴 Disconnected';
+                statusEl.className = 'connection-status disconnected';
+            }
+        }
+
+        function showError(message) {
+            // Remove existing messages
+            const existing = document.querySelector('.error-message, .success-message');
+            if (existing) existing.remove();
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            document.querySelector('.container').appendChild(errorDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            // Remove existing messages
+            const existing = document.querySelector('.error-message, .success-message');
+            if (existing) existing.remove();
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            
+            document.querySelector('.container').appendChild(successDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        // Voice recording functions
+        async function startRecording() {
+            if (isRecording) return;
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await sendVoiceMessage(audioBlob);
+                    
+                    // Stop all tracks to release microphone
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                
+                const voiceBtn = document.getElementById('voiceBtn');
+                voiceBtn.className = 'voice-btn recording';
+                document.getElementById('voiceStatus').textContent = 'Recording... Release to send';
+                
+            } catch (error) {
+                console.error('Failed to start recording:', error);
+                showError('Microphone access denied or not available');
+            }
+        }
+
+        function stopRecording() {
+            if (!isRecording || !mediaRecorder) return;
+            
+            mediaRecorder.stop();
+            isRecording = false;
+            
+            const voiceBtn = document.getElementById('voiceBtn');
+            voiceBtn.className = 'voice-btn idle';
+            document.getElementById('voiceStatus').textContent = 'Processing voice...';
+        }
+
+        async function sendVoiceMessage(audioBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'voice.wav');
+                formData.append('session_id', sessionId);
+                
+                document.getElementById('voiceStatus').textContent = 'Sending to AI...';
+                
+                const response = await fetch(`${API_BASE}/voice`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage(`🎤 Voice: "${data.transcription}"`, true);
+                    addMessage(data.response, false);
+                    
+                    if (data.vehicle_status) {
+                        updateVehicleStatus(data.vehicle_status);
+                    }
+                    
+                    document.getElementById('voiceStatus').textContent = 'Voice processed successfully';
+                } else {
+                    showError(`Voice processing failed: ${data.error}`);
+                    document.getElementById('voiceStatus').textContent = 'Voice processing failed';
+                }
+            } catch (error) {
+                console.error('Voice message failed:', error);
+                showError('Failed to process voice message');
+                document.getElementById('voiceStatus').textContent = 'Failed to process voice';
+            }
+            
+            // Clear status after 3 seconds
+            setTimeout(() => {
+                document.getElementById('voiceStatus').textContent = '';
+            }, 3000);
+        }
+
+        // Utility function to update API endpoint
+        function updateApiEndpoint(endpoint) {
+            document.getElementById('apiEndpoint').textContent = endpoint;
+        }
+    </script>
+</body>
+</html>

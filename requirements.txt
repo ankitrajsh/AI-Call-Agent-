@@ -1,0 +1,32 @@
+# AI Call Agent Requirements
+# Core dependencies for the AI Call Agent system
+
+# Audio processing
+numpy>=1.24.0
+sounddevice>=0.4.6
+pyaudio>=0.2.14
+
+# Speech recognition and synthesis
+openai-whisper
+transformers>=4.36.0
+torch>=2.2.1
+
+# NLP and text processing
+nltk>=3.8.1
+speechrecognition>=3.10.1
+
+# UI and console
+rich>=13.7.1
+
+# Utility
+requests>=2.31.0
+typing-extensions>=4.8.0
+
+# Optional: LLM integration (uncomment if needed)
+# langchain>=0.1.13
+# langchain-community>=0.0.20
+
+# Development dependencies (optional)
+# pytest>=7.0.0
+# black>=23.0.0
+# flake8>=6.0.0
